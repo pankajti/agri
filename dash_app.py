@@ -1,4 +1,4 @@
 from agri.gui.dash_demo_1 import app
 
 if __name__ == '__main__':
-    app.run(debug=False, port=8990)
+    app.run(debug=True,host='0.0.0.0', port=8050)
