@@ -1,7 +1,7 @@
+# llm_bot.py
 import os
 import re
 from agri.config.config import load_env
-
 from langchain_openai import ChatOpenAI
 from langchain_community.utilities import SQLDatabase
 from langchain_community.agent_toolkits.sql.toolkit import SQLDatabaseToolkit
@@ -11,24 +11,17 @@ from langchain.schema import SystemMessage
 
 load_env()
 
-# --------------------
-# CONFIG
-# --------------------
 ALLOWED_TABLES = [
     "usda_weekly_export_sales",
     "commodities",
     "countries"
 ]
-
 DEFAULT_LIMIT = 200
 DANGEROUS_SQL = re.compile(
     r"\b(ALTER|CREATE|DROP|TRUNCATE|INSERT|UPDATE|DELETE|GRANT|REVOKE|VACUUM|ANALYZE)\b",
     re.IGNORECASE,
 )
 
-# --------------------
-# Safety wrapper
-# --------------------
 def enforce_readonly_and_limit(sql: str) -> str:
     if DANGEROUS_SQL.search(sql):
         raise ValueError("Blocked potentially dangerous SQL.")
@@ -37,49 +30,26 @@ def enforce_readonly_and_limit(sql: str) -> str:
         s = f"{s}\nLIMIT {DEFAULT_LIMIT}"
     return s + ";"
 
-# --------------------
-# Prompt
-# --------------------
 SYSTEM_INSTRUCTIONS = f"""
 You are a SQL analyst for a PostgreSQL database.
 
 Tables and joins:
 1. usda_weekly_export_sales
-   Columns (case-sensitive, must be double-quoted in SQL):
-     "commodityCode" (bigint) — join to commodities."commodityCode"
-     "countryCode"   (bigint) — join to countries."countryCode"
-     "weeklyExports" (bigint)
-     "accumulatedExports" (bigint)
-     "outstandingSales"   (bigint)
-     "grossNewSales"      (bigint)
-     "currentMYNetSales"  (bigint)
-     "currentMYTotalCommitment" (bigint)
-     "nextMYOutstandingSales"   (bigint)
-     "nextMYNetSales"     (bigint)
-     "weekEndingDate"     (text or date)
-     market_year          (bigint)
+   Columns (must be double-quoted):
+     "commodityCode", "countryCode", "weeklyExports", "accumulatedExports",
+     "outstandingSales", "grossNewSales", "currentMYNetSales",
+     "currentMYTotalCommitment", "nextMYOutstandingSales", "nextMYNetSales",
+     "weekEndingDate", market_year
 
-2. commodities
-   Columns:
-     "commodityCode" (bigint)
-     "commodityName" (text)
+2. commodities — "commodityCode", "commodityName"
+3. countries  — "countryCode", "countryName"
 
-3. countries
-   Columns:
-     "countryCode"   (bigint)
-     "countryName"   (text)
-     "countryDescription" (text)
-
-Join rules:
+Joins:
 - usda_weekly_export_sales."commodityCode" = commodities."commodityCode"
 - usda_weekly_export_sales."countryCode"   = countries."countryCode"
 
-Guidelines:
-- Always double-quote CamelCase identifiers in SQL.
-- For "top exporters" use SUM("weeklyExports") unless user specifies another metric.
-- Use LIMIT <= {DEFAULT_LIMIT} unless the query is an aggregate returning one row.
-- For "latest week", use the max("weekEndingDate") for that market_year.
-- Only query the three tables above.
+Use SUM("weeklyExports") for "highest export" unless otherwise specified.
+Always double-quote CamelCase identifiers.
 """
 
 prompt = ChatPromptTemplate.from_messages([
@@ -89,16 +59,12 @@ prompt = ChatPromptTemplate.from_messages([
     MessagesPlaceholder("agent_scratchpad"),
 ])
 
-# --------------------
-# Build DB & Agent
-# --------------------
+# Build once and reuse
 db = SQLDatabase.from_uri(
     os.environ["DATABASE_URL"],
     include_tables=ALLOWED_TABLES,
     sample_rows_in_table_info=3
 )
-
-# Patch run() to enforce safety
 original_run = db.run
 def safe_run(sql: str, *args, **kwargs):
     return original_run(enforce_readonly_and_limit(sql), *args, **kwargs)
@@ -107,36 +73,25 @@ db.run = safe_run  # type: ignore
 llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 toolkit = SQLDatabaseToolkit(db=db, llm=llm)
 tools = toolkit.get_tools()
-
 agent = create_openai_tools_agent(llm=llm, tools=tools, prompt=prompt)
-executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
-
-# --------------------
-# REPL
-# --------------------
-print("Simple USDA SQL Bot (tables only)")
-print("Type 'exit' to quit\n")
+executor = AgentExecutor(agent=agent, tools=tools, verbose=False)
 
 chat_history = []
 
-while True:
+def query_llm(question: str) -> str:
+    global chat_history
     try:
-        user = input("You> ").strip()
-    except (EOFError, KeyboardInterrupt):
-        print("\nBye!")
-        break
-    if not user:
-        continue
-    if user.lower() in {"exit", "quit"}:
-        print("Bye!")
-        break
-    try:
-        resp = executor.invoke({"input": user, "chat_history": chat_history})
+        resp = executor.invoke({"input": question, "chat_history": chat_history})
         answer = resp.get("output", "")
-        print(f"\nBot> {answer}\n")
         chat_history.extend([
-            {"role": "user", "content": user},
+            {"role": "user", "content": question},
             {"role": "assistant", "content": answer}
         ])
+        return answer
     except Exception as e:
-        print(f"\n[Error] {e}\n")
+        return f"[Error] {e}"
+
+
+if __name__ == '__main__':
+    resp = query_llm("which is the country with highest weekly export in july 2025 for each commodites?")
+    print(resp)

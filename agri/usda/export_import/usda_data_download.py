@@ -22,7 +22,7 @@ wsda_urls  = {'weekly_export_sales' : 'https://api.fas.usda.gov/api/esr/exports/
               'countries':f'https://api.fas.usda.gov/api/esr/countries?api_key={usda_api_key}'}
 
 def main():
-    #data = download_onetime_data()
+    data = download_onetime_data()
 
     #print(data)
     all_export_import_data = []
