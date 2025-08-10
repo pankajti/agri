@@ -2,7 +2,7 @@ import dash
 from dash import Dash, html, dcc, Input, Output, State, ctx
 from dash.dash_table import DataTable
 import pandas as pd
-from llm_bot import query_llm  # your actual bot function
+from agri.reporting.llm_bot import query_llm  # your actual bot function
 
 # =========================
 # App config / data sources
