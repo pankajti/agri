@@ -17,7 +17,7 @@ def download_api_data(api_url):
         return pd.DataFrame()
 
 
-wsda_urls  = {'export_import' : 'https://api.fas.usda.gov/api/esr/exports/commodityCode/{}/allCountries/marketYear/{}?api_key={}',
+wsda_urls  = {'weekly_export_sales' : 'https://api.fas.usda.gov/api/esr/exports/commodityCode/{}/allCountries/marketYear/{}?api_key={}',
               'commodities':f'https://api.fas.usda.gov/api/esr/commodities?api_key={usda_api_key}',
               'countries':f'https://api.fas.usda.gov/api/esr/countries?api_key={usda_api_key}'}
 
@@ -26,13 +26,13 @@ def main():
 
     #print(data)
     all_export_import_data = []
-    for i in range(1960 , 2026):
+    for i in range(1999 , 2026):
         for commodity in [1404,1301]:
             print(f"running for year {i}")
-            export_import_url = wsda_urls['export_import'].format(commodity, i,usda_api_key)
+            export_import_url = wsda_urls['weekly_export_sales'].format(commodity, i,usda_api_key)
             data = download_api_data(export_import_url)
             data['market_year'] = i
-            data.to_sql("usda_export_import_data", engine, if_exists="append")
+            data.to_sql("usda_weekly_export_sales", engine, if_exists="append")
             print(f"downloaded data {data.shape}")
 
 
