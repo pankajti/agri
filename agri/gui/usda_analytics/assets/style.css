@@ -1,0 +1,52 @@
+/* Modern, colorful theme with subtle shadows and nicer tabs */
+:root{
+  --bg:#f6f7fb; --card:#fff; --text:#1f2937; --muted:#6b7280;
+  --primary:#2563eb; --accent:#f59e0b; --success:#10b981; --danger:#ef4444;
+  --border:#e5e7eb; --shadow:0 8px 24px rgba(2,6,23,.06);
+  --kpi-grad:linear-gradient(135deg, rgba(37,99,235,.12), rgba(16,185,129,.12));
+}
+
+body{margin:0;font-family:-apple-system, Segoe UI, Roboto, sans-serif;background:var(--bg);color:var(--text);}
+.topbar{position:sticky;top:0;z-index:10;background:var(--card);border-bottom:1px solid var(--border);
+  padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.title{font-weight:700;letter-spacing:.2px}
+.muted{color:var(--muted);font-size:12px}
+
+/* Buttons */
+button,.btn{background:var(--primary);color:#fff;border:none;padding:8px 12px;border-radius:10px;cursor:pointer;box-shadow:var(--shadow)}
+button:hover,.btn:hover{filter:brightness(.96)}
+
+/* Layout + cards */
+.container{display:grid;grid-template-columns:300px 1fr;gap:14px;padding:14px}
+.sidebar{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;height:calc(100vh - 88px);
+  position:sticky;top:64px;overflow:auto;box-shadow:var(--shadow)}
+.main{display:flex;flex-direction:column;gap:14px}
+.content{background:transparent}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;box-shadow:var(--shadow)}
+
+/* KPI */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;position:relative;overflow:hidden}
+.kpi::before{content:"";position:absolute;inset:0;background:var(--kpi-grad);pointer-events:none}
+.kpi-title{font-size:12px;color:var(--muted)}
+.kpi-value{font-size:28px;font-weight:700}
+
+/* Tabs (Dash core) */
+.tab{color:var(--muted)!important;font-weight:600}
+.tab--selected{color:#fff!important;background:var(--primary)!important;border-bottom:2px solid var(--primary)!important}
+
+/* Chat */
+.section-title{font-weight:700;margin-bottom:8px}
+.chat-window{background:var(--card);border:1px solid var(--border);border-radius:14px;min-height:300px;padding:12px;margin-bottom:8px;box-shadow:var(--shadow)}
+.chat-input{display:grid;grid-template-columns:1fr auto;gap:8px}
+
+/* Tables */
+.dash-table-container .row{color:var(--text)}
+.dash-table-container .dash-spreadsheet-container{border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow)}
+
+/* Responsive */
+@media (max-width:1200px){.kpis{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:1024px){.container{grid-template-columns:1fr}.sidebar{position:static;height:auto}}
+
+.chip{background:#e5edff;color:#1f3fd1;border:none;padding:6px 10px;border-radius:999px;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.chip:hover{filter:brightness(.96)}
