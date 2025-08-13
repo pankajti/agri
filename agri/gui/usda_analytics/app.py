@@ -2,7 +2,7 @@ import dash
 from dash import Dash, dcc, html, Input, Output, State
 import pandas as pd
 
-from agri.gui.usda_analytics.data.loaders import load_weekly_exports, load_wasde_balance, load_crop_progress
+from agri.gui.usda_analytics.data.loaders import load_weekly_exports, load_wasde_balance, load_crop_progress,get_marketing_years
 from agri.gui.usda_analytics.layouts.overview import layout as overview_layout, register_callbacks as register_overview
 from agri.gui.usda_analytics.layouts.exports import layout as exports_layout, register_callbacks as register_exports
 from agri.gui.usda_analytics.layouts.progress import layout as progress_layout, register_callbacks as register_progress
@@ -10,7 +10,8 @@ from agri.gui.usda_analytics.layouts.wasde import layout as wasde_layout, regist
 from agri.gui.usda_analytics.layouts.chat import layout as chat_layout, register_callbacks as register_chat
 import plotly.io as pio
 pio.templates.default = "plotly_white"
-
+commodities = ["Cotton- Am Pima", "Wheat", "Corn", "All Upland Cotton"]
+marketing_years = get_marketing_years(commodities[0])
 def create_app() -> Dash:
     app = Dash(__name__, suppress_callback_exceptions=True)
     server = app.server
@@ -26,10 +27,11 @@ def create_app() -> Dash:
             # Sidebar
             html.Div([
                 html.Label("Commodity"),
-                dcc.Dropdown(id="f-commodity", options=["Cotton", "Wheat", "Corn", "Soybeans"], value="Cotton", clearable=False),
+                dcc.Dropdown(id="f-commodity", options=commodities, value=commodities[0],
+                             clearable=False),
 
                 html.Label("Marketing Year"),
-                dcc.Dropdown(id="f-my", options=["2024/25", "2023/24", "2022/23"], value="2024/25", clearable=False),
+                dcc.Dropdown(id="f-marketing-year", options=marketing_years, value= marketing_years[0], clearable=False),
 
                 html.Label("Destinations"),
                 dcc.Dropdown(id="f-countries", multi=True),
@@ -130,10 +132,14 @@ def create_app() -> Dash:
         Output("refresh-note", "children"),
         Input("btn-refresh", "n_clicks"),
         Input("f-commodity", "value"),
+        State("f-marketing-year", "value"),
+
         prevent_initial_call=True,
     )
-    def refresh_data(n, commodity):
+    def refresh_data(n, commodity,my):
         exports = load_weekly_exports(commodity)
+        if my:
+            exports = exports[exports["my"] == my]
         wasde = load_wasde_balance(commodity)
         progress = load_crop_progress(commodity)
 

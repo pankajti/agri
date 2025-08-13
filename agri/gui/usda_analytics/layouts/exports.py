@@ -61,6 +61,7 @@ def register_callbacks(app):
         # table for the selected window (last 12 distinct weeks *within* window)
         latest_weeks = df["week"].drop_duplicates().sort_values().tail(12)
         tbl_df = df[df["week"].isin(latest_weeks)].sort_values(["week", "country"]).copy()
+        tbl_df=tbl_df.sort_values("week", ascending=False)
         tbl_df.loc[:, "week"] = pd.to_datetime(tbl_df["week"]).dt.date.astype(str)
 
         return fig, tbl_df.to_dict("records")
