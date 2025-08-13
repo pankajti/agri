@@ -33,6 +33,7 @@ def layout():
 
 
 def register_callbacks(app):
+
     @app.callback(
         Output("llm-chat-history", "data"),
         Output("llm-input", "value"),
@@ -40,17 +41,40 @@ def register_callbacks(app):
         Input("llm-clear", "n_clicks"),
         State("llm-input", "value"),
         State("llm-chat-history", "data"),
+        State("f-commodity", "value"),       # NEW
+        State("f-marketing-year", "value"),  # NEW
+        State("f-countries", "value"),       # NEW
         prevent_initial_call=True
     )
-    def update_chat(submit_clicks, clear_clicks, question, history):
+    def update_chat(submit_clicks, clear_clicks, question, history,
+                    commodity, marketing_year, countries):
         trigger = dash.ctx.triggered_id
+
         if trigger == "llm-clear":
             return [{"role": "bot", "content": "Hello! I can query USDA exports database for you."}], ""
+
         if trigger == "llm-submit" and question and question.strip():
             history.append({"role": "user", "content": question.strip()})
-            reply = query_llm(question.strip())
+
+            # Build contextual question
+            context_parts = []
+            if commodity:
+                context_parts.append(f"Commodity: {commodity}")
+            if marketing_year:
+                context_parts.append(f"Marketing Year: {marketing_year}")
+            if countries:
+                context_parts.append(f"Destinations: {', '.join(countries)}")
+
+            if context_parts:
+                context_str = " | ".join(context_parts)
+                full_question = f"Context: {context_str}\nQuestion: {question.strip()}"
+            else:
+                full_question = question.strip()
+
+            reply = query_llm(full_question)
             history.append({"role": "bot", "content": reply})
             return history, ""
+
         return dash.no_update, ""
 
     @app.callback(
